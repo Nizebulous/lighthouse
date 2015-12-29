@@ -1,0 +1,43 @@
+<html>
+
+    <h2> IMAGES </h2>
+    <table style='border: 1px solid black; border-collapse: collapse;'>
+        <tr >
+            <th>Action</th>
+            {%- for header in image_headers -%}<th style='border: 1px solid black; border-collapse: collapse; padding: 15px;'>{{ header }}</th>{%- endfor -%}
+        </tr>
+        {%- for image_line in images -%}
+            <tr>
+                <td style='border: 1px solid black; border-collapse: collapse; padding: 15px;'>
+                    <form method="post">
+                        <input type="hidden" name='image_id' value="{{ image_line[2] }}" />
+                        <button type="submmit">start</button>
+                    </form>
+                </td>
+                {%- for image in image_line -%}<td style='border: 1px solid black; border-collapse: collapse; padding: 15px;'>{{ image }}</td>{%- endfor -%}
+            </tr>
+        {%- endfor -%}
+    </table>
+
+    <h2> CONTAINERS </h2>
+    <table style='border: 1px solid black; border-collapse: collapse;'>
+        <tr >
+            <th>Action</th>
+            {%- for header in container_headers -%}<th style='border: 1px solid black; border-collapse: collapse; padding: 15px;'>{{ header }}</th>{%- endfor -%}
+        </tr>
+        {%- for container_line in containers -%}
+            <tr>
+                <td style='border: 1px solid black; border-collapse: collapse; padding: 15px;'>
+                    <form method="post">
+                        {% set action = 'stop' if container_line[4].startswith('Up') else 'rm' %}
+                        <input type="hidden" name='container_id' value="{{ container_line[0] }}" />
+                        <input type="hidden" name='action' value={{action}} />
+                        <button type="submmit">{{action}}</button>
+                    </form>
+                </td>
+                {%- for container in container_line -%}<td style='border: 1px solid black; border-collapse: collapse; padding: 15px;'>{{ container }}</td>{%- endfor -%}
+            </tr>
+        {%- endfor -%}
+    </table>
+
+</html>

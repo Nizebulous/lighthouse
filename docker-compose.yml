@@ -1,0 +1,9 @@
+manager:
+    build: .
+    volumes:
+        - /usr/local/bin/docker:/usr/bin/docker
+        - /var/run/docker.sock:/var/run/docker.sock
+
+    ports:
+        - 5000:5000
+
