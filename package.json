@@ -1,0 +1,27 @@
+{
+  "name": "lighthouse",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lighthoust/static/js/main.js",
+  "dependencies": {
+    "babel-preset-react": "^6.3.13",
+    "babelify": "^7.2.0",
+    "flux": "^2.1.1",
+    "react": "^0.14.5",
+    "react-dom": "^0.14.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nizebulous/lighthouse.git"
+  },
+  "author": "Damian Hites <nizebulous@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nizebulous/lighthouse/issues"
+  },
+  "homepage": "https://github.com/Nizebulous/lighthouse#readme"
+}
