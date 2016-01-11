@@ -1,5 +1,7 @@
+import os
 from pytz import utc
 from datetime import datetime
+from ConfigParser import ConfigParser
 from docker.utils import kwargs_from_env
 
 from docker import Client
@@ -23,6 +25,19 @@ def get_docker_client():
 
 
 docker = LocalProxy(get_docker_client)
+
+
+def get_docker_configs():
+    config_path = os.path.expanduser(current_app.config.get('DOCKER_CONFIG_DIR', 'config'))
+    files = [(f, os.path.join(config_path, f)) for f in os.listdir(config_path) if os.path.isfile(os.path.join(config_path, f))]
+    config_map = {}
+    for filename, path in files:
+        config = ConfigParser()
+        config.read(f)
+        config_map[os.path.splitext(filename)] = config
+    return config_map
+
+config_map = LocalProxy(get_docker_configs)
 
 
 class Field(object):
@@ -122,6 +137,7 @@ class Action(object):
 class Mapper(object):
 
     def __init__(self, data):
+        print 'DATA:', data
         self._initialize_fields()
         if not isinstance(data, list):
             data = [data]
@@ -162,6 +178,7 @@ class ImageMapper(Mapper):
 class ContainerMapper(Mapper):
     container_id = Field(source='Id')
     image = Field(source='Image')
+    image_id = Field(source='ImageID')
     command = Field(source='Command')
     created_at = DateTimeField(source='Created')
     status = Field(source='Status')
@@ -178,8 +195,8 @@ def get_images():
     return jsonify({'results': images})
 
 
-@docker_bp.route('images/<action>/<image_id>', methods=['POST'])
-def take_image_action(action, image_id):
+@docker_bp.route('images/<image_id>/<action>', methods=['POST'])
+def take_image_action(image_id, action):
     if action == 'run':
         container_info = docker.create_container(image=image_id)
         docker.start(container_info['Id'])
@@ -190,6 +207,11 @@ def take_image_action(action, image_id):
     return jsonify({})
 
 
+@docker_bp.route('images/<image_id>/config', methods=['POST'])
+def set_config(image_id):
+    pass
+
+
 @docker_bp.route('containers/')
 def get_containers():
     container_mapper = ContainerMapper(docker.containers(all=True))
@@ -197,7 +219,7 @@ def get_containers():
     return jsonify({'results': containers})
 
 
-@docker_bp.route('containers/<action>/<container_id>', methods=['POST'])
+@docker_bp.route('containers/<container_id>/<action>', methods=['POST'])
 def take_container_action(action, container_id):
     if action == 'stop':
         docker.stop(container_id)

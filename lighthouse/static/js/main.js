@@ -1,198 +1,207 @@
 "use strict";
 
-var emitter = require("./emitter");
+var EventEmitter = require("events").EventEmitter;
 var dispatcher = require("./dispatcher");
+var ReactDOM = require('react-dom');
+var assign = require('object-assign');
 
-var ImageAction = React.createClass({
+// React-Bootstrap
+var Nav = require('react-bootstrap/lib/Nav');
+var NavItem = require('react-bootstrap/lib/NavItem');
+var NavDropdown = require('react-bootstrap/lib/NavDropdown');
+var MenuItem = require('react-bootstrap/lib/MenuItem');
+var Grid = require('react-bootstrap/lib/Grid');
+var Row = require('react-bootstrap/lib/Row');
+var Col = require('react-bootstrap/lib/Col');
+var PageHeader = require('react-bootstrap/lib/PageHeader');
+var PanelGroup = require('react-bootstrap/lib/PanelGroup');
+var Panel = require('react-bootstrap/lib/Panel');
+var Button = require('react-bootstrap/lib/Button');
+var Label = require('react-bootstrap/lib/Label');
+var Table = require('react-bootstrap/lib/Table');
+var Modal = require('react-bootstrap/lib/Modal');
+var Input = require('react-bootstrap/lib/Input');
 
-    propTypes: {
-        image: React.PropTypes.object.isRequired
+const innerCheckbox = <input type='checkbox' name='port' aria-label="..." />;
+
+var PortInput = React.createClass({
+
+    // regex for validating port input
+    validationRegex: /^(\b\d+(:\d+?)?\b ?)*$/,
+
+    getInitialState: function() {
+        return {
+            style: ''
+        };
     },
 
-    takeAction: function() {
-        var url = '/api/docker/images/' + this.props.action.name + '/' + this.props.image.image_id;
-        console.log(url);
-        $.post(url, function(items) {
-            console.log('action: ' + this.props.action.name + ' on ' + this.props.image.image_id);
-            dispatcher.dispatch({ type: 'containers-fetch' });
-            dispatcher.dispatch({ type: 'images-fetch' });
-        }.bind(this));
+    _onChange: function(event) {
+        console.log(event.currentTarget.value);
+        if (event.currentTarget.value == '') {
+            this.setState({style: ''});
+        } else if (this.validationRegex.test(event.currentTarget.value)) {
+            this.setState({style: 'success'});
+        } else {
+            this.setState({style: 'error'});
+        }
     },
 
     render: function() {
-        return (<button type="button" onClick={this.takeAction}>{this.props.action.label}</button>);
+        var props = {
+            type: 'text',
+            name: 'ports',
+            label: 'ports',
+            help: 'Enter port config, leave blank for default(ex: <containerPort> <host>:<container>)'
+        };
+        if (this.state.style != '') {
+            props.bsStyle = this.state.style;
+        }
+        return (
+            <Input {...props} onChange={this._onChange} addonBefore={innerCheckbox} hasFeedback />
+        );
     }
-
 });
 
-var ContainerAction = React.createClass({
+var Config = React.createClass({
 
-    propTypes: {
-        container: React.PropTypes.object.isRequired
+    getInitialState: function() {
+        return { 
+            showModal: false ,
+        };
     },
 
-    takeAction: function() {
-        var url = '/api/docker/containers/' + this.props.action.name + '/' + this.props.container.container_id;
-        console.log(url);
-        $.post(url, function(items) {
-            console.log('action: ' + this.props.action.name + ' on ' + this.props.container.container_id);
-            dispatcher.dispatch({ type: 'containers-fetch' });
-        }.bind(this));
+    close: function() {
+        console.log('close');
+        this.setState({ showModal: false });
+    },
+
+    open: function() {
+        console.log('open');
+        this.setState({ showModal: true });
     },
 
     render: function() {
-        return (<button type="button" onClick={this.takeAction}>{this.props.action.label}</button>);
+        return (
+            <div>
+                <Button onClick={this.open}>
+                    config
+                </Button>
+                <Modal show={this.state.showModal} onHide={this.close}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Run Configuration</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <form>
+                            <PortInput />
+                            <Button bsStyle='primary' onClick={Actions.saveConfig}>Save</Button>
+                        </form>
+                    </Modal.Body>
+                </Modal>
+            </div>
+        );
     }
-
 });
 
 var Image = React.createClass({
 
-    propTypes: {
-        image: React.PropTypes.object.isRequired
-    },
+    LABELS: ['default', 'primary', 'success', 'info', 'warning', 'danger'],
 
-    styles: {
-        container: {
-            width: '700px',
-            height: '100px',
-            borderRadius: '25px',
-            background: '#73AD21',
-            margin: '10px auto' ,
-            verticalAlign: 'top',
-            textAlign: 'left'
-        },
-        left: {
-            display: 'inline-block',
-            width: '120px',
-            textAlign: 'center',
-            verticalAlign: 'top'
-        },
-        middle: {
-            display: 'inline-block',
-            width: '150px',
-            textAlign: 'left',
-            verticalAlign: 'top',
-            margin: '10 auto'
-        },
-        right: {
-            display: 'inline-block',
-            width: '330px',
-            textAlign: 'center',
-            verticalAlign: 'middle',
-            margin: '10 auto'
-        },
-        actions: {
-            display: 'inline-block',
-            width: '100px',
-            textAlign: 'right',
-            verticalAlign: 'middle',
-            margin: '10 auto'
-        },
-        list: {
-            listStyleType: 'none',
-            margin: '0',
-            padding: '0'
-        },
-        image: {
-            width: '60px',
-            height: '40px',
-            backgroundImage: 'url(https://camo.githubusercontent.com/1e11d429705bf6695b79d24966cb1267c00b7df6/68747470733a2f2f7777772e646f636b65722e636f6d2f73697465732f64656661756c742f66696c65732f6f79737465722d72656769737472792d332e706e67)',
-            backgroundSize: '60px 40px',
-            margin: '10 auto',
-        },
-        text: {
-            width: '80px',
-        },
-        contents: {
-            verticalAlign: 'middle',
-            textAlign: 'center',
-            margin: '0 auto',
-            padding: '3px'
-        },
-    },
-
-    renderRepo: function(repo) {
-        return (<li key={repo} style={this.styles.list}>{repo}</li>);
+    renderContainers: function(containers) {
+        if (containers.length > 0) {
+            return (
+                <div>
+                    {containers.map(function(container) {
+                        return (<Container key={container.container_id} container={container} />);
+                    })}
+                </div>
+            );
+        } else {
+            return (<span>No containers for this image</span>);
+        }
     },
 
     renderRepos: function(repositories) {
         var entries = [];
+        var index = 0;
         for (var repo in repositories) {
             repositories[repo].forEach(function(tag) {
-                entries.push(repo + ':' + tag)
-            });
+                entries.push(<Label key={repo + tag} bsStyle={this.LABELS[index]}>{repo}:{tag}</Label>);
+            }.bind(this));
+            index++;
         }
         return (
-            <ul style={this.styles.list}>{entries.map(this.renderRepo)}</ul>
+            <div>
+                {entries}
+            </div>
         );
     },
 
     render: function() {
         var image = this.props.image;
         return (
-            <div style={this.styles.container}>
-                <div style={this.styles.left}>
-                    <div style={this.styles.image}></div>
-                    <div><span><input style={this.styles.text} type='text' readOnly='true' value={image.image_id} /></span></div>
-                </div>
-                <div style={this.styles.middle}>
-                    <span>REPOSITORIES</span>
+            <Panel header={'Image ' + image.image_id} collapsible>
+                <Config />
+                <Table>
+                    <thead><tr><th>Created</th><th>Virtual Size</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>{image.created_at} (6 days ago)</td>
+                            <td>{image.virtual_size}</td>
+                            <td>
+                                {image.actions.map(function(action) {
+                                    return (
+                                        <button key={action.name} type="button" onClick={Actions.image_action.bind(this, image, action.name)}>
+                                            {action.label}
+                                        </button>
+                                    );
+                                })}
+                            </td>
+                        </tr>
+                    </tbody>
+                </Table>
+                <div>
+                    <h4>Tags</h4>
                     {this.renderRepos(image.repositories)}
                 </div>
-                <div style={this.styles.right}>
-                    <div style={this.styles.contents}><div>Created</div><div>{image.created_at}</div></div>
-                    <div style={this.styles.contents}><div>Virtual Size</div><div>{image.virtual_size}</div></div>
+                <div>
+                    <h4>Containers</h4>
+                    {this.renderContainers(image.containers)}
                 </div>
-                <div style={this.styles.actions}>
-                    {image.actions.map(function(action) {
-                        return (<ImageAction key={action.name} image={image} action={action} />);
-                    })}
-                </div>
-            </div>
+            </Panel>
         );
     },
 });
 
 var ImageList = React.createClass({
     getInitialState: function() {
-        return {
-            images: []
-        };
-    },
-
-    componentWillMount: function() {
-        emitter.on('images-store-changed', function(response) {
-            this.setState({ images: response.results });
-        }.bind(this));
+        return this._getState();
     },
 
     componentDidMount: function() {
-        dispatcher.dispatch({ type: 'images-fetch' });
+        DockerStore.addChangeListener(this._onChange);
     },
 
     componentsWillUnmount: function() {
-        emitter.off('images-store-changed');
+        DockerStore.removeChangeListener(this._onChange);
     },
 
-    create: function() {
-        this.refs.create.show();
+    _getState: function() {
+        return {
+            images: DockerStore.getImages(),
+        };
     },
 
-    styles: {
-        header: {
-            textAlign: 'center'
-        }
+    _onChange: function() {
+        this.setState(this._getState());
     },
 
     render: function() {
         return (
-            <div style={this.styles.header}>
-                <h3>IMAGES</h3>
+            <Panel header="Images">
                 {this.state.images.map(function(image) {
                     return <Image key={image.image_id} image={image} />;
                 })}
-            </div>
+            </Panel>
         )
     }
 });
@@ -203,179 +212,283 @@ var Container = React.createClass({
         container: React.PropTypes.object.isRequired
     },
 
-    styles: {
-        container: {
-            width: '700px',
-            height: '100px',
-            borderRadius: '25px',
-            background: '#73AD21',
-            margin: '10px auto' ,
-            verticalAlign: 'top',
-            textAlign: 'left'
-        },
-        left: {
-            display: 'inline-block',
-            width: '120px',
-            textAlign: 'center',
-            verticalAlign: 'top',
-            overflow: 'hidden',
-            maxHeight: '100px'
-        },
-        middle: {
-            display: 'inline-block',
-            width: '150px',
-            textAlign: 'left',
-            verticalAlign: 'top',
-            margin: '0 auto',
-            overflow: 'hidden',
-            maxHeight: '100px'
-        },
-        right: {
-            display: 'inline-block',
-            width: '330px',
-            textAlign: 'center',
-            verticalAlign: 'middle',
-            margin: '0 auto',
-            overflow: 'hidden',
-            maxHeight: '100px'
-        },
-        actions: {
-            display: 'inline-block',
-            width: '100px',
-            textAlign: 'right',
-            verticalAlign: 'middle',
-            margin: '0 auto',
-            overflow: 'hidden',
-            maxHeight: '100px'
-        },
-        list: {
-            listStyleType: 'none',
-            margin: '0',
-            padding: '0'
-        },
-        image: {
-            width: '60px',
-            height: '40px',
-            backgroundImage: 'url(http://pbs.twimg.com/profile_images/378800000124779041/fbbb494a7eef5f9278c6967b6072ca3e.png)',
-            backgroundSize: '60px 40px',
-            margin: '10 auto',
-        },
-        text: {
-            width: '80px',
-        },
-        contents: {
-            verticalAlign: 'middle',
-            textAlign: 'center',
-            margin: '0 auto',
-            padding: '3px',
-            overflow: 'hidden',
-        },
-    },
-
     render: function() {
         var container = this.props.container;
+        var bsStyle = '';
+        if (container.status.startsWith('Up')) {
+            bsStyle = 'success';
+        } else {
+            bsStyle = 'default';
+        }
+        console.log(container.ports);
         return (
-            <div style={this.styles.container}>
-                <div style={this.styles.left}>
-                    <div style={this.styles.image}></div>
-                    <div><span><input style={this.styles.text} type='text' readOnly='true' value={container.container_id} /></span></div>
-                </div>
-                <div style={this.styles.middle}>
-                    <div style={this.styles.contents}><div>Image</div><div>{container.image}</div></div>
-                    <div style={this.styles.contents}><div>Command</div><div>{container.command}</div></div>
-                </div>
-                <div style={this.styles.right}>
-                    <div style={this.styles.contents}><div>Created</div><div>{container.created_at}</div></div>
-                    <div style={this.styles.contents}><div>Status</div><div>{container.status}</div></div>
-                </div>
-                <div style={this.styles.actions}>
-                    {container.actions.map(function(action) {
-                        return (<ContainerAction key={action.name} container={container} action={action} />);
-                    })}
-                </div>
-            </div>
+            <Panel header={container.names + ' (' + container.container_id + ')'} bsStyle={bsStyle}>
+                <Grid>
+                    <Row>
+                        <Col xs={3} md={2}>Command:</Col>
+                        <Col>{container.command}</Col>
+                    </Row>
+                    <Row>
+                        <Col xs={3} md={2}>Created:</Col>
+                        <Col>{container.created_at} (6 days ago)</Col>
+                    </Row>
+                    <Row>
+                        <Col xs={3} md={2}>Status:</Col>
+                        <Col>{container.status}</Col>
+                    </Row>
+                    <Row>
+                        <Col xs={3} md={2}>Ports:</Col>
+                        <Col>
+                            {container.ports.map(function(port) {
+                                return port.PrivatePort;
+                            })}
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col xs={3} md={2}>Actions:</Col>
+                        <Col>
+                            {container.actions.map(function(action) {
+                                return (
+                                    <button key={action.name} type="button" onClick={Actions.container_action.bind(this, container, action.name)}>
+                                        {action.label}
+                                    </button>
+                                );
+                            })}
+                        </Col>
+                    </Row>
+                </Grid>
+            </Panel>
         );
     },
 });
 
-var ContainerList = React.createClass({
-    getInitialState: function() {
-        return {
-            containers: []
-        };
-    },
+var Actions = {
+    SERVER_UPDATE: 'docker-update',
+    IMAGES_URL: '/api/docker/images', 
+    CONTAINERS_URL: '/api/docker/containers',
 
-    componentWillMount: function() {
-        emitter.on('containers-store-changed', function(response) {
-            this.setState({ containers: response.results });
+    serverUpdate: function() {
+        var images = [];
+        var imagesPromise = $.get(this.IMAGES_URL);
+        var containersPromise = $.get(this.CONTAINERS_URL);
+        $.when(imagesPromise, containersPromise).done(function(imageResponse, containerResponse) {
+            var images = imageResponse[0].results;
+            var containers = containerResponse[0].results;
+            dispatcher.dispatch({action: this.SERVER_UPDATE, images: images, containers: containers});
         }.bind(this));
     },
 
+    image_action: function(image, action) {
+        $.post('api/docker/images/' + image.image_id + '/' + action, function(response) {
+            Actions.serverUpdate();
+        }.bind(this));
+    },
+
+    saveConfig: function(arg) {
+        console.log(arg);
+        console.log('Saving config');
+    },
+
+    container_action: function(container, action) {
+        $.post('api/docker/containers/' + container.container_id + '/' + action, function(response) {
+            Actions.serverUpdate();
+        }.bind(this));
+    },
+};
+
+var DockerStore = assign({}, EventEmitter.prototype, {
+
+    _images: [],
+    _containers: [],
+
+    getImages: function() {
+        return this._images;
+    },
+
+    emitChange: function() {
+        this.emit(this.CHANGE_EVENT);
+    },
+
+    addChangeListener: function(callback) {
+        this.on(this.CHANGE_EVENT, callback);
+    },
+
+    removeChangeListener: function(callback) {
+        this.removeListener(this.CHANGE_EVENT, callback);
+    },
+
+    dispatcherIndex: dispatcher.register(function(payload) {
+        switch(payload.action) {
+            case Actions.SERVER_UPDATE:
+                DockerStore._images = payload.images;
+                DockerStore._containers = payload.containers;
+                // map containers to images
+                var images_by_id = {};
+                payload.images.forEach(function(image) {
+                    images_by_id[image.image_id] = image;
+                    image.containers = [];
+                });
+                payload.containers.forEach(function(container) {
+                    images_by_id[container.image_id].containers.push(container);
+                });
+                DockerStore.emitChange();
+                break;
+        }
+
+        return true;
+    })
+});
+
+var TAB_CONFIG = 'config';
+var TAB_DOCKER = 'docker';
+var LightHouseStore = assign({}, EventEmitter.prototype, {
+
+    _tab: TAB_CONFIG,
+
+    CHANGE_EVENT: 'lighthouse-change',
+
+    getTab: function() {
+        return this._tab;
+    },
+
+    updateTab: function(tab) {
+        this._tab = tab;
+    },
+
+    emitChange: function() {
+        this.emit(this.CHANGE_EVENT);
+    },
+
+    addChangeListener: function(callback) {
+        this.on(this.CHANGE_EVENT, callback);
+    },
+
+    removeChangeListener: function(callback) {
+        this.removeListener(this.CHANGE_EVENT, callback);
+    },
+
+    dispatcherIndex: dispatcher.register(function(payload) {
+        var action = payload.action;
+        var text;
+
+        switch(action) {
+            case 'tab-selected':
+                LightHouseStore.updateTab(payload.tab);
+                LightHouseStore.emitChange();
+                break;
+
+        }
+
+        return true;
+    })
+});
+
+var Header = React.createClass({
+    render: function() {
+        return (
+            <Grid bsStyle="info">
+                <Row className="show-grid">
+                    <Col xs={4} md={3}><img src="/static/images/lighthouse.png" /></Col>
+                    <Col xs={5} md={4}><PageHeader>Lighthouse</PageHeader></Col>
+                </Row>
+            </Grid>
+        );
+    }
+});
+
+var NavBar = React.createClass({
+    getInitialState: function() {
+        return this._getState();
+    },
+
     componentDidMount: function() {
-        dispatcher.dispatch({ type: 'containers-fetch' });
+        LightHouseStore.addChangeListener(this._onChange);
     },
 
     componentsWillUnmount: function() {
-        emitter.off('containers-store-changed');
+        LightHouseStore.removeChangeListener(this._onChange);
     },
 
-    create: function() {
-        this.refs.create.show();
+    _onChange: function() {
+        this.setState(this._getState());
+    },
+        
+    _getState: function() {
+        return {
+            selectedTab: LightHouseStore.getTab()
+        };
     },
 
-    styles: {
-        header: {
-            textAlign: 'center'
-        }
+    _onSelect: function(tab) {
+        dispatcher.dispatch({source: 'VIEW_ACTION', action: 'tab-selected', tab: tab});
     },
 
     render: function() {
         return (
-            <div style={this.styles.header}>
-                <h3>CONTAINERS</h3>
-                {this.state.containers.map(function(container) {
-                    return <Container key={container.container_id} container={container} />;
-                })}
-            </div>
-        )
+            <Nav bsStyle="tabs" activeKey={this.state.selectedTab} onSelect={this._onSelect}>
+                <NavItem eventKey={TAB_CONFIG}>Config</NavItem>
+                <NavItem eventKey={TAB_DOCKER}>Docker</NavItem>
+            </Nav>
+        );
+    }
+});
+
+var MainPanel = React.createClass({
+
+    getInitialState: function() {
+        return this._getState();
+    },
+
+    componentDidMount: function() {
+        Actions.serverUpdate();
+        LightHouseStore.addChangeListener(this._onChange);
+    },
+
+    componentsWillUnmount: function() {
+        LightHouseStore.removeChangeListener(this._onChange);
+    },
+
+    _onChange: function() {
+        this.setState(this._getState());
+    },
+
+    _getState: function() {
+        return {
+            activeTab: LightHouseStore.getTab()
+        };
+    },
+
+    render: function() {
+        switch (this.state.activeTab) {
+            case TAB_CONFIG:
+                return (<div></div>);
+            case TAB_DOCKER:
+                return (<div><ImageList /></div>);
+            default:
+                return (<div></div>);
+        }
     }
 
 });
 
-var Store = function(label) {
-    dispatcher.register(function(payload) {
-        switch (payload.type) {
-            case label + '-fetch':
-                this._all();
-                break;
-        }
-    }.bind(this));
-    
-    this._all = function() {
-        $.get("/api/docker/" + label, function(items) {
-            this._notify(items);
-        }.bind(this));
+var LightHouse = React.createClass({
+
+    componentDidMount: function() {
+        Actions.serverUpdate();
+    },
+
+    render: function() {
+        var style = {backgroundColor: 'light-blue'};
+        return (
+            <div style={style}>
+                <Header />
+                <ImageList />
+            </div>
+        );
     }
-    
-    this._notify = function(items) {
-        emitter.emit(label + '-store-changed', items);
-    }
-};
+});
 
-var ImageStore = new Store('images');
-var ContainerStore = new Store('containers');
-
-var headers = ['REPOSITORIES', 'CREATED', 'IMAGE ID', 'VIRTUAL SIZE'];
-var imageTable = {
-    repositories: ''
-};
-
-React.render(
-    <ImageList />,
-    document.getElementById('images')
-);
-
-React.render(
-    <ContainerList />,
-    document.getElementById('containers')
+ReactDOM.render(
+    <LightHouse />,
+    document.getElementById('main')
 );
